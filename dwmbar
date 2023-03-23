@@ -1,0 +1,61 @@
+#!/bin/sh
+dte(){
+        dte="$(date +"%a, %b %d %R")"
+        echo "$dte"
+}
+
+ssd(){
+        hdd="$(df -h /home | grep dev | awk '{print$3, " "  $5}')"
+        tmp="$(sensors | grep 'Composite' | awk '{ print $2 }' | cut -b 2-5)"
+        echo "SSD: $hdd, $tmp C"
+}
+
+mem(){
+        mem="$(free -h | awk '/Mem:/ {printf $3 " / " $2}')"
+        echo "Mem: $mem"
+}
+
+cpu() {
+    read cpu a b c previdle rest < /proc/stat
+      prevtotal=$((a+b+c+previdle))
+        sleep 0.5
+          read cpu a b c idle rest < /proc/stat
+            total=$((a+b+c+idle))
+              cpu=$((100*( (total-prevtotal) - (idle-previdle) ) / (total-prevtotal) ))
+                echo " CPU: $cpu% "
+}
+
+fan() {
+  speed=$(sensors | grep 'cpu_fan' | awk '{ print $2, $3 }')
+  echo "$speed"
+}
+
+Ctemp() {
+  tmp=$(sensors | grep 'Package id 0' | cut -b 17-18)
+  echo "$tmp C"
+}
+
+vol(){
+	vol="$(pactl get-sink-volume 0 | awk -F'/ ' '{ print $2 }')"
+	echo "Vol: $vol"
+}
+
+bat() {
+	battery="$(cat /sys/class/power_supply/BAT0/capacity)"
+	echo "$battery %"
+}
+
+batstat() {
+	bstat="$(cat /sys/class/power_supply/BAT0/status)"
+	echo "$bstat"
+}
+
+status() {
+  echo "$(bat) $(batstat) | $(cpu) $(Ctemp), Fan: $(fan) | $(mem) | $(ssd) | $(vol) | $(dte)"
+}
+
+
+while true; do
+	xsetroot -name "$(status)"
+	sleep 3
+done
